@@ -55,8 +55,12 @@ class VBC_PT_tidy_group_inputs_panel(bpy.types.Panel):
         row.operator('vbc.set_group_input_color', text="Apply Color")
         
         row = color_box.row(align=True) #------------- custom color
-        row.prop(prefs, 'use_custom_color', text = "Color:")    # checkbox
+        row.prop(prefs, 'use_custom_color', text = "Input Color:")    # checkbox
         row.prop(prefs, 'gi_custom_color',  text = "") # color picker
+
+        row = color_box.row(align=True) #------------- custom color
+        row.prop(prefs, 'use_custom_color_output', text = "Output Color:")    # checkbox
+        row.prop(prefs, 'gi_custom_color_output',  text = "") # color picker
 
 class HideUnusedOutputSocketsOp(bpy.types.Operator):
     bl_idname = 'vbc.hide_group_input_sockets'
@@ -123,14 +127,23 @@ class SetGroupInputColorOp(bpy.types.Operator):
     def execute(self, context):
         prefs = context.preferences.addons[__name__].preferences
         custom_color = prefs.gi_custom_color
+        custom_color_output = prefs.gi_custom_color_output
         
         gi_nodes = get_group_input_nodes(context.space_data.edit_tree) # currently edited node group
+        go_nodes = get_group_output_nodes(context.space_data.edit_tree)
         for node in gi_nodes:
             if prefs.use_custom_color:
                 node.color = custom_color
                 node.use_custom_color = True
             else:
                 node.use_custom_color = False
+        for node in go_nodes:
+            if prefs.use_custom_color_output:
+                node.color = custom_color_output
+                node.use_custom_color = True
+            else:
+                node.use_custom_color = False
+
                             
         status = 'Set' if prefs.use_custom_color else 'Unset'
         # self.report({'INFO'}, f"{status} custom color on {len(gi_nodes)} Group Input nodes")        
@@ -138,6 +151,9 @@ class SetGroupInputColorOp(bpy.types.Operator):
 
 def get_group_input_nodes(current_group):
     return list(filter(lambda x: "GROUP_INPUT" in x.type, current_group.nodes))
+
+def get_group_output_nodes(current_group):
+    return list(filter(lambda x: "GROUP_OUTPUT" in x.type, current_group.nodes))
 
 class TidyGroupInputPreferences(bpy.types.AddonPreferences):
     # this must match the add-on name, use '__package__'
@@ -157,14 +173,28 @@ class TidyGroupInputPreferences(bpy.types.AddonPreferences):
     )
     
     use_custom_color: bpy.props.BoolProperty ( \
-        name = "Use Custom Color",
+        name = "Use Custom Color - Group Input",
         description = "Use a custom color for Group Input nodes",
         default = False
     )
 
     gi_custom_color: bpy.props.FloatVectorProperty ( \
-        name = "Default Custom Color",
+        name = "Custom Color - Group Input",
         description = "Custom color for Group Input nodes",
+        subtype = 'COLOR_GAMMA',
+        min = 0, max = 1,
+        default = [0.1,0.3,0.5]
+    )
+
+    use_custom_color_output: bpy.props.BoolProperty( \
+        name = "Use Custom Color - Group Output",
+        description = "Use a custom color for Group Input nodes",
+        default = False
+    )
+
+    gi_custom_color_output: bpy.props.FloatVectorProperty ( \
+        name = "Custom Color - Group Output",
+        description = "Custom color for Group Output nodes",
         subtype = 'COLOR_GAMMA',
         min = 0, max = 1,
         default = [0.1,0.3,0.5]
@@ -177,8 +207,11 @@ class TidyGroupInputPreferences(bpy.types.AddonPreferences):
         layout.prop(self, "enable_show_all")
 
         row = layout.row(align=True)
-        row.prop(self, 'use_custom_color', text = "Color:")    # checkbox
+        row.prop(self, 'use_custom_color', text = "Input Color:")    # checkbox
         row.prop(self, 'gi_custom_color',  text = "") # color picker
+        row = layout.row(align=True)
+        row.prop(self, 'use_custom_color_output', text = "Output Color:")    # checkbox
+        row.prop(self, 'gi_custom_color_output',  text = "") # color picker
 
 classes = (
     HideUnusedOutputSocketsOp, 
